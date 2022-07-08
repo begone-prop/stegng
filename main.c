@@ -15,7 +15,7 @@
 
 int main(int argc, char **argv) {
     const char *def_path = "media/maze.png";
-    const char *path = argc > 2 ? argv[1] : def_path;
+    const char *path = argc > 1 ? argv[1] : def_path;
     int fd = open(path, O_RDONLY);
     if(fd == -1) err(1, "Failed to open %s", path);
 
