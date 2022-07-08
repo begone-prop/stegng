@@ -4,6 +4,8 @@
 #include <stdlib.h>
 
 static void reverse(void *, size_t);
+static unsigned long update_crc(unsigned long, unsigned char *, int);
+static void make_crc_table(void);
 
 int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     size_t start = offset;
@@ -44,6 +46,23 @@ int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     return 1;
 }
 
+int freeChunk(chunk *target_chunk) {
+    if(!target_chunk || !target_chunk->data) return -1;
+    free(target_chunk->data);
+    target_chunk->data = NULL;
+    target_chunk->type = 0;
+    target_chunk->length = 0;
+    target_chunk->crc = 0;
+    target_chunk->valid = false;
+    return 1;
+}
+
+int unmapFile(void *addr, size_t map_size) {
+    if(!addr) return -1;
+    munmap(addr,  map_size);
+    return 1;
+}
+
 static void reverse(void *buff, size_t size) {
     uint8_t temp;
 
@@ -77,7 +96,7 @@ unsigned long crc_table[256];
 int crc_table_computed = 0;
 
 /* Make the table for a fast CRC. */
-void make_crc_table(void) {
+static void make_crc_table(void) {
   unsigned long c;
   int n, k;
 
@@ -99,7 +118,7 @@ void make_crc_table(void) {
    is the 1's complement of the final running CRC (see the
    crc() routine below)). */
 
-unsigned long update_crc(unsigned long crc, unsigned char *buf, int len) {
+static unsigned long update_crc(unsigned long crc, unsigned char *buf, int len) {
   unsigned long c = crc;
   int n;
 

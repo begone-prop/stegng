@@ -14,14 +14,6 @@ static const uint8_t validSigniture[] = {137, 80, 78, 71, 13, 10, 26, 10};
 #define REVERSE(A) reverse(&(A), sizeof(A))
 #define CHUNK_SIZE(a) (a).length + 12
 
-typedef struct chunk {
-  uint32_t length;
-  uint32_t type;
-  void *data;
-  uint32_t crc;
-  bool valid;
-} chunk;
-
 enum chunk_type {
     IHDR = 0x49484452,
     PLTE = 0x504c5445,
@@ -45,9 +37,17 @@ enum chunk_type {
     zTXt = 0x7a545874,
 };
 
+typedef struct chunk {
+  uint32_t length;
+  uint32_t type;
+  void *data;
+  uint32_t crc;
+  bool valid;
+} chunk;
+
 int readChunk(void *, size_t, chunk *, size_t);
 void *mapFile(int, size_t *);
+int unmapFile(void *, size_t);
+int freeChunk(chunk *);
 unsigned long calcCRC(unsigned char *, int);
-unsigned long update_crc(unsigned long, unsigned char *, int);
-void make_crc_table(void);
 #endif

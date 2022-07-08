@@ -7,7 +7,6 @@
 #include <err.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <sys/mman.h>
 #include "./png.h"
 
 #ifndef MAX_CHUNK
@@ -15,7 +14,8 @@
 #endif
 
 int main(int argc, char **argv) {
-    const char *path = "media/maze.png";
+    const char *def_path = "media/maze.png";
+    const char *path = argc > 2 ? argv[1] : def_path;
     int fd = open(path, O_RDONLY);
     if(fd == -1) err(1, "Failed to open %s", path);
 
@@ -37,14 +37,13 @@ int main(int argc, char **argv) {
 
     close(fd);
 
-    chunk new_chunk;
     size_t offset = SIGNITURE_SIZE;
 
     chunk chunks[MAX_CHUNK];
     size_t chunks_size = 0;
 
     bool found_end = false;
-    while(!found_end && offset < map_size) {
+    while(!found_end && offset < map_size && chunks_size < MAX_CHUNK) {
 
         chunk new_chunk;
         int bytesc = readChunk(data, map_size, &new_chunk, offset);
@@ -53,29 +52,42 @@ int main(int argc, char **argv) {
             return 1;
         }
 
+        if(!new_chunk.valid) {
+            fprintf(stderr, "Chunk CRC mismatch, corrupted chunk\n");
+            fprintf(stderr, "Exiting\n");
+            return 1;
+        }
+
         chunks[chunks_size] = new_chunk;
-        switch(chunks[chunks_size].type) {
+        offset += CHUNK_SIZE(chunks[chunks_size]);
+
+        switch(new_chunk.type) {
             case IHDR:
-                printf("IHDR chunk\n");
+                printf("IHDR chunk (%zu)\n", chunks_size);
                 break;
 
             case PLTE:
-                printf("PLTE chunk\n");
+                printf("PLTE chunk (%zu)\n", chunks_size);
                 break;
 
             case IDAT:
-                printf("IDAT chunk\n");
+                printf("IDAT chunk (%zu)\n", chunks_size);
                 break;
 
             case IEND:
-                printf("IEND chunk\n");
+                printf("IEND chunk (%zu)\n", chunks_size);
+                found_end = true;
                 break;
         }
 
-        offset += CHUNK_SIZE(chunks[chunks_size]);
         chunks_size++;
     }
 
-    munmap(data, map_size);
+    for(size_t idx = 0; idx < chunks_size; idx++) {
+        /*printf("%u\n", chunks[idx].length);*/
+        freeChunk(&chunks[idx]);
+    }
+
+    unmapFile(data, map_size);
     return 0;
 }
