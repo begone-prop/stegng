@@ -65,32 +65,16 @@ int main(int argc, char **argv) {
         }
 
         chunks[chunks_size] = new_chunk;
+        if(chunks[chunks_size].type == IEND) found_end = true;
         offset += CHUNK_SIZE(chunks[chunks_size]);
-
-        switch(new_chunk.type) {
-            case IHDR:
-                printf("IHDR chunk (%zu)\n", chunks_size);
-                break;
-
-            case PLTE:
-                printf("PLTE chunk (%zu)\n", chunks_size);
-                break;
-
-            case IDAT:
-                printf("IDAT chunk (%zu)\n", chunks_size);
-                break;
-
-            case IEND:
-                printf("IEND chunk (%zu)\n", chunks_size);
-                found_end = true;
-                break;
-        }
-
         chunks_size++;
     }
 
     for(size_t idx = 0; idx < chunks_size; idx++) {
-        /*printf("%u\n", chunks[idx].length);*/
+        printChunk(chunks[idx]);
+    }
+
+    for(size_t idx = 0; idx < chunks_size; idx++) {
         freeChunk(&chunks[idx]);
     }
 

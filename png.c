@@ -1,11 +1,50 @@
+#define _XOPEN_SOURCE 500
+
 #include "./png.h"
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static void reverse(void *, size_t);
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
+
+const char *getChunkName(uint32_t type) {
+    switch(type) {
+        case IHDR: return "IHDR";
+        case PLTE: return "PLTE";
+        case IDAT: return "IDAT";
+        case IEND: return "IEND";
+        case bKGD: return "bKGD";
+        case cHRM: return "cHRM";
+        case gAMA: return "gAMA";
+        case hIST: return "hIST";
+        case iCCP: return "iCCP";
+        case iTXt: return "iTXt";
+        case pHYs: return "pHYs";
+        case sBIT: return "sBIT";
+        case sPLT: return "sPLT";
+        case sRGB: return "sRGB";
+        case tEXt: return "tEXt";
+        case tIME: return "tIME";
+        case tRNS: return "tRNS";
+        case zTXt: return "zTXt";
+    }
+    return "undefined";
+}
+
+void printChunk(chunk tchunk) {
+    printf("------------\n");
+    printf("Size: %u bytes\n", tchunk.length);
+    printf("Type: (%s) 0X%X\n", getChunkName(tchunk.type), tchunk.type);
+
+    printf("Data: %p\n", tchunk.data);
+    printf("CRC: 0x%0X\n", tchunk.crc);
+    printf("CRC check: %s\n", tchunk.valid ? "Pass" : "Corrupted");
+    printf("------------\n");
+}
+
 
 int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     size_t start = offset;

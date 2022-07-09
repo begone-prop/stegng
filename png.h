@@ -2,9 +2,10 @@
 #define PNG_H__
 
 #include <stdint.h>
-#include <stddef.h>
+#include <sys/types.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #define SIGNITURE_SIZE 8
 static const uint8_t validSigniture[] = {137, 80, 78, 71, 13, 10, 26, 10};
@@ -45,6 +46,8 @@ typedef struct chunk {
   bool valid;
 } chunk;
 
+void printChunk(chunk);
+const char *getChunkName(uint32_t);
 int readChunk(void *, size_t, chunk *, size_t);
 void *mapFile(int, size_t *);
 int unmapFile(void *, size_t);
