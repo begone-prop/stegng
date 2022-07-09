@@ -52,11 +52,6 @@ int main(int argc, char **argv) {
             return 1;
         }
 
-        bool crit_chunk = !(new_chunk.type & 0x20);
-
-        if(!crit_chunk) {
-            printf("Ancillary chunk detected\n");
-        }
 
         if(!new_chunk.valid) {
             fprintf(stderr, "Chunk CRC mismatch, corrupted chunk\n");
@@ -71,6 +66,7 @@ int main(int argc, char **argv) {
     }
 
     for(size_t idx = 0; idx < chunks_size; idx++) {
+        bool crit_chunk = !(chunks[idx].type & (1 << 0x1D));
         printChunk(chunks[idx]);
     }
 
