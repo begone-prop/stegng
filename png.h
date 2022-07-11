@@ -13,7 +13,8 @@ static const uint8_t validSigniture[] = {137, 80, 78, 71, 13, 10, 26, 10};
     (memcmp((A), (validSigniture), SIGNITURE_SIZE) == 0 ? true : false)
 
 #define REVERSE(A) reverse(&(A), sizeof(A))
-#define CHUNK_SIZE(a) (a).length + 12
+#define CHUNK_SIZE(A) (A).length + 12
+#define IS_CRITICAL(A) !(A.type & (1 << 0x1D))
 
 enum chunk_type {
     IHDR = 0x49484452,
@@ -47,6 +48,7 @@ typedef struct chunk {
 } chunk;
 
 int parsePNG(const char *, chunk *, size_t, size_t *);
+int writePNG(const char *, chunk *, size_t);
 void printChunk(chunk);
 void reverse(void *, size_t);
 const char *getChunkName(uint32_t);

@@ -16,6 +16,7 @@
 int main(int argc, char **argv) {
     const char *def_path = "media/maze.png";
     const char *path = argc > 1 ? argv[1] : def_path;
+    const char *out_path = "./out.png";
 
     chunk chunks[MAX_CHUNK];
     size_t chunks_size;
@@ -27,24 +28,12 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    const char *out_path = "./out.png";
-    const mode_t perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-    int ofd = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, perm);
-    size_t out_offset = 0;
+    int wstatus = writePNG(out_path, chunks, chunks_size);
 
-    pwrite(ofd, validSigniture, SIGNITURE_SIZE, 0);
-    out_offset += SIGNITURE_SIZE;
-
-    for(size_t idx = 0; idx < chunks_size; idx++) {
-        bool crit_chunk = !(chunks[idx].type & (1 << 0x1D));
-        printChunk(chunks[idx]);
-        if(!crit_chunk) {
-            writeChunk(ofd, chunks[idx], out_offset);
-            out_offset += CHUNK_SIZE(chunks[idx]);
-        }
+    if(wstatus == -1) {
+        fprintf(stderr, "Failed to write chunks to %s\n", out_path);
+        return 1;
     }
-
-    close(ofd);
 
     for(size_t idx = 0; idx < chunks_size; idx++) {
         freeChunk(&chunks[idx]);

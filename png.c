@@ -10,6 +10,29 @@
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
 
+int writePNG(const char *path, chunk *chunks, size_t chunks_size) {
+    const mode_t perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    int ofd = open(path, O_WRONLY | O_CREAT | O_TRUNC, perm);
+    if(ofd == -1) return -1;
+    size_t out_offset = 0;
+
+    if(pwrite(ofd, validSigniture, SIGNITURE_SIZE, 0) == -1)
+        return -1;
+
+    out_offset += SIGNITURE_SIZE;
+
+    for(size_t idx = 0; idx < chunks_size; idx++) {
+        if(writeChunk(ofd, chunks[idx], out_offset) == -1) {
+            close(ofd);
+            return -1;
+        }
+        out_offset += CHUNK_SIZE(chunks[idx]);
+    }
+
+    close(ofd);
+    return 1;
+}
+
 int parsePNG(const char *path, chunk *chunk_buffer, size_t cb_max, size_t *cb_size) {
     int fd = open(path, O_RDONLY);
     if(fd == -1) return -1;
@@ -64,17 +87,17 @@ int parsePNG(const char *path, chunk *chunk_buffer, size_t cb_max, size_t *cb_si
 }
 
 int writeChunk(int fd, chunk src, size_t offset) {
-    size_t start = offset;
     uint32_t length = src.length;
+    ssize_t bytesw = offset;
 
     REVERSE(src.length);
     REVERSE(src.type);
     REVERSE(src.crc);
 
-    if((offset += pwrite(fd, &src.length, sizeof(src.length), offset)) == -1) return -1;
-    if((offset += pwrite(fd, &src.type, sizeof(src.type), offset)) == -1) return -1;
-    if((offset += pwrite(fd, src.data, length, offset)) == -1) return -1;
-    if((offset += pwrite(fd, &src.crc, sizeof(src.crc), offset)) == -1) return -1;
+    if((bytesw += pwrite(fd, &src.length, sizeof(src.length), bytesw)) == -1) return -1;
+    if((bytesw += pwrite(fd, &src.type, sizeof(src.type), bytesw)) == -1) return -1;
+    if((bytesw += pwrite(fd, src.data, length, bytesw)) == -1) return -1;
+    if((bytesw += pwrite(fd, &src.crc, sizeof(src.crc), bytesw)) == -1) return -1;
 
     return CHUNK_SIZE(src);
 }
