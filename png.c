@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void reverse(void *, size_t);
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
 
@@ -102,7 +101,7 @@ int unmapFile(void *addr, size_t map_size) {
     return 1;
 }
 
-static void reverse(void *buff, size_t size) {
+void reverse(void *buff, size_t size) {
     uint8_t temp;
 
     for(size_t idx = 0; idx < size / 2; idx++) {

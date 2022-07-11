@@ -47,6 +47,7 @@ typedef struct chunk {
 } chunk;
 
 void printChunk(chunk);
+void reverse(void *, size_t);
 const char *getChunkName(uint32_t);
 int readChunk(void *, size_t, chunk *, size_t);
 void *mapFile(int, size_t *);
