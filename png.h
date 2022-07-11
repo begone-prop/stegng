@@ -46,6 +46,7 @@ typedef struct chunk {
   bool valid;
 } chunk;
 
+int parsePNG(const char *, chunk *, size_t, size_t *);
 void printChunk(chunk);
 void reverse(void *, size_t);
 const char *getChunkName(uint32_t);

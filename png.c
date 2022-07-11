@@ -2,12 +2,66 @@
 
 #include "./png.h"
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
+
+int parsePNG(const char *path, chunk *chunk_buffer, size_t cb_max, size_t *cb_size) {
+    int fd = open(path, O_RDONLY);
+    if(fd == -1) return -1;
+
+    static uint8_t sig_buff[SIGNITURE_SIZE];
+    ssize_t bytesr = pread(fd, sig_buff, SIGNITURE_SIZE, 0);
+    if(bytesr == -1) return -1;
+
+    if(!HAS_VALID_SIGNITURE(sig_buff)) {
+        fprintf(stderr, "Not a valid signiture on file %s\n", path);
+        return 1;
+    }
+
+    size_t map_size = 0;
+    void *data = mapFile(fd, &map_size);
+    if(!data) {
+        fprintf(stderr, "Failed to map file %s\n", path);
+        return 1;
+    }
+
+    close(fd);
+
+    size_t offset = SIGNITURE_SIZE;
+
+    size_t chunks_size = 0;
+
+    bool found_end = false;
+    while(!found_end && offset < map_size && chunks_size < cb_max) {
+
+        chunk new_chunk;
+        int bytesc = readChunk(data, map_size, &new_chunk, offset);
+        if(bytesc == -1) {
+            fprintf(stderr, "Error while reading chunk\n");
+            return 1;
+        }
+
+        if(!new_chunk.valid) {
+            fprintf(stderr, "Chunk CRC mismatch, corrupted chunk\n");
+            fprintf(stderr, "Exiting\n");
+            return 1;
+        }
+
+        chunk_buffer[chunks_size] = new_chunk;
+        if(chunk_buffer[chunks_size].type == IEND) found_end = true;
+        offset += CHUNK_SIZE(chunk_buffer[chunks_size]);
+        chunks_size++;
+    }
+
+    if(cb_size) *cb_size = chunks_size;
+    unmapFile(data, map_size);
+    return 1;
+}
 
 int writeChunk(int fd, chunk src, size_t offset) {
     size_t start = offset;
