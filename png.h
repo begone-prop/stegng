@@ -50,6 +50,7 @@ void printChunk(chunk);
 void reverse(void *, size_t);
 const char *getChunkName(uint32_t);
 int readChunk(void *, size_t, chunk *, size_t);
+int writeChunk(int, chunk, size_t);
 void *mapFile(int, size_t *);
 int unmapFile(void *, size_t);
 int freeChunk(chunk *);

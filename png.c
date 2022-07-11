@@ -9,6 +9,22 @@
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
 
+int writeChunk(int fd, chunk src, size_t offset) {
+    size_t start = offset;
+    uint32_t length = src.length;
+
+    REVERSE(src.length);
+    REVERSE(src.type);
+    REVERSE(src.crc);
+
+    if((offset += pwrite(fd, &src.length, sizeof(src.length), offset)) == -1) return -1;
+    if((offset += pwrite(fd, &src.type, sizeof(src.type), offset)) == -1) return -1;
+    if((offset += pwrite(fd, src.data, length, offset)) == -1) return -1;
+    if((offset += pwrite(fd, &src.crc, sizeof(src.crc), offset)) == -1) return -1;
+
+    return CHUNK_SIZE(src);
+}
+
 const char *getChunkName(uint32_t type) {
     switch(type) {
         case IHDR: return "IHDR";

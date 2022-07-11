@@ -52,7 +52,6 @@ int main(int argc, char **argv) {
             return 1;
         }
 
-
         if(!new_chunk.valid) {
             fprintf(stderr, "Chunk CRC mismatch, corrupted chunk\n");
             fprintf(stderr, "Exiting\n");
@@ -65,10 +64,24 @@ int main(int argc, char **argv) {
         chunks_size++;
     }
 
+    const char *out_path = "./out.png";
+    const mode_t perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    int ofd = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, perm);
+    size_t out_offset = 0;
+
+    pwrite(ofd, validSigniture, SIGNITURE_SIZE, 0);
+    out_offset += SIGNITURE_SIZE;
+
     for(size_t idx = 0; idx < chunks_size; idx++) {
         bool crit_chunk = !(chunks[idx].type & (1 << 0x1D));
-        printChunk(chunks[idx]);
+        /*printChunk(chunks[idx]);*/
+        if(crit_chunk) {
+            writeChunk(ofd, chunks[idx], out_offset);
+            out_offset += CHUNK_SIZE(chunks[idx]);
+        }
     }
+
+    close(ofd);
 
     for(size_t idx = 0; idx < chunks_size; idx++) {
         freeChunk(&chunks[idx]);
