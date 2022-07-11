@@ -2,11 +2,6 @@
 #define _XOPEN_SOURCE 500
 
 #include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <err.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include "./png.h"
 
 #ifndef MAX_CHUNK

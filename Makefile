@@ -18,4 +18,4 @@ $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 clean:
-	rm -rf $(BIN) $(OBJDIR)
+	rm -rf $(BIN) $(OBJDIR) out.png rand_*.png
