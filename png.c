@@ -10,7 +10,7 @@
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
 
-int writePNG(const char *path, chunk *chunks, size_t chunks_size) {
+int writePNG(const char *path, chunk *chunks, size_t chunks_size, bool crit_only) {
     const mode_t perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
     int ofd = open(path, O_WRONLY | O_CREAT | O_TRUNC, perm);
     if(ofd == -1) return -1;
@@ -22,6 +22,8 @@ int writePNG(const char *path, chunk *chunks, size_t chunks_size) {
     out_offset += SIGNITURE_SIZE;
 
     for(size_t idx = 0; idx < chunks_size; idx++) {
+        if(crit_only && !IS_CRITICAL(chunks[idx])) continue;
+
         if(writeChunk(ofd, chunks[idx], out_offset) == -1) {
             close(ofd);
             return -1;
