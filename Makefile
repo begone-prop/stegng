@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -std=c99 -Wextra -ggdb
+CFLAGS=-Wall -Wextra -std=c99 -Wpedantic -ggdb
 
 OBJDIR=lib
 CFILES=main.c png.c

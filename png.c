@@ -144,7 +144,7 @@ int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     size_t start = offset;
 
     uint32_t length;
-    memcpy(&length, data + offset, sizeof(length));
+    memcpy(&length, (uint8_t *)data + offset, sizeof(length));
     REVERSE(length);
     buff->length = length;
 
@@ -152,7 +152,7 @@ int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     offset += sizeof(length);
 
     uint32_t type;
-    memcpy(&type, data + offset, sizeof(type));
+    memcpy(&type, (uint8_t *)data + offset, sizeof(type));
 
     REVERSE(type);
     buff->type = type;
@@ -164,17 +164,17 @@ int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     addr = malloc(length);
     if(!addr) return -1;
     buff->data = addr;
-    memcpy(buff->data, data + offset, length);
+    memcpy(buff->data, (char *)data + offset, length);
 
     if((offset + length) >= data_size) return -1;
     offset += length;
 
     uint32_t crc;
-    memcpy(&crc, data + offset, sizeof(crc));
+    memcpy(&crc, (char *)data + offset, sizeof(crc));
     REVERSE(crc);
     buff->crc = crc;
 
-    uint32_t cyc = calcCRC(data + start + sizeof(length), sizeof(type) + length);
+    uint32_t cyc = calcCRC((uint8_t *)data + start + sizeof(length), sizeof(type) + length);
     buff->valid = cyc == crc;
     return 1;
 }
@@ -200,9 +200,9 @@ void reverse(void *buff, size_t size) {
     uint8_t temp;
 
     for(size_t idx = 0; idx < size / 2; idx++) {
-        temp = *(uint8_t *)(buff + idx);
-        *(uint8_t *)(buff + idx) = *(uint8_t *)(buff + size - idx - 1);
-        *(uint8_t *)(buff + size - idx - 1) = temp;
+        temp = *(uint8_t *)((uint8_t *)buff + idx);
+        *(uint8_t *)((uint8_t *)buff + idx) = *(uint8_t *)((uint8_t *)buff + size - idx - 1);
+        *(uint8_t *)((uint8_t *)buff + size - idx - 1) = temp;
     }
 }
 
