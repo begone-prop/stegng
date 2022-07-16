@@ -2,7 +2,11 @@
 #define _XOPEN_SOURCE 500
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include "./png.h"
 
@@ -16,13 +20,17 @@ int main(int argc, char **argv) {
     const char *out_path = NULL;
     bool strip_anci = false;
     bool print_chunks = false;
+    bool inject_chunks = false;
+    char *file_inj = NULL;
+    static const char *keyword_def = "data";
+    const size_t keyword_def_size = strlen(keyword_def);
     struct stat sbuff;
 
     chunk chunks[MAX_CHUNK];
     size_t chunks_size;
 
     int opt;
-    while((opt = getopt(argc, argv, "i:o:sp")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:j:sp")) != -1) {
         switch(opt) {
             case 'i':
                 (void)0;
@@ -64,6 +72,13 @@ int main(int argc, char **argv) {
                 print_chunks = true;
                 break;
 
+            case 'j': {
+                inject_chunks = true;
+                file_inj = optarg;
+
+                break;
+            }
+
             default:
                 fprintf(stderr, "%s: Unknown option %s", program_invocation_short_name, optarg);
                 return 1;
@@ -71,14 +86,65 @@ int main(int argc, char **argv) {
     }
 
     if(!path) {
-        fprintf(stderr, "No input file...\n");
-        fprintf(stderr, "Usage: %s -i <file> -o <file>\n", program_invocation_short_name);
+        fprintf(stderr, "No input file...\n"
+            "Usage: %s -i <file> -o <file>\n", program_invocation_short_name);
         return 0;
     }
 
     if(parsePNG(path, chunks, MAX_CHUNK, &chunks_size) == -1) {
         fprintf(stderr, "Failed to parse %s\n", path);
         return 1;
+    }
+
+
+    if(inject_chunks) {
+
+        int fd = open(file_inj, O_RDONLY);
+
+        if(fd == -1) {
+            fprintf(stderr, "Failed to open %s: %s\n", file_inj, strerror(errno));
+            return 1;
+        }
+
+        size_t inj_size;
+        void *inj = mapFile(fd, &inj_size);
+        close(fd);
+
+        if(!inj) {
+            fprintf(stderr, "Failed to map file %s\n", file_inj);
+            return 1;
+        }
+
+        size_t data_size_bytes = inj_size;
+        size_t injected_data_size = data_size_bytes + keyword_def_size + 1;
+
+        if(injected_data_size >= UINT32_MAX) {
+            fprintf(stderr, "Size of data (%zu) is bigger than maxium chunk data size (UINT32: %u)\n", injected_data_size, UINT32_MAX);
+            return 1;
+        }
+
+        printf("Injected data size %zu bytes\n", injected_data_size);
+
+        chunk new_chunk;
+        void *inj_data = malloc(injected_data_size);
+        new_chunk.type = tEXt;
+        new_chunk.length = injected_data_size;
+
+        memcpy((uint8_t *)inj_data, keyword_def, keyword_def_size);
+        *(char *)((uint8_t*)inj_data + keyword_def_size) = '\0';
+        memcpy((uint8_t *)inj_data + keyword_def_size + 1, inj, inj_size);
+        new_chunk.data = inj_data;
+
+        uint32_t crc = calcChunkCRC(new_chunk);
+
+        new_chunk.crc = crc;
+        new_chunk.valid = true;
+        chunk end = chunks[chunks_size - 1];
+        chunks[chunks_size - 1] = new_chunk;
+        chunks[chunks_size] = end;
+        chunks_size++;
+
+        unmapFile(inj, inj_size);
     }
 
     if(print_chunks) {

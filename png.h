@@ -58,4 +58,5 @@ void *mapFile(int, size_t *);
 int unmapFile(void *, size_t);
 int freeChunk(chunk *);
 unsigned long calcCRC(unsigned char *, int);
+uint32_t calcChunkCRC(chunk);
 #endif

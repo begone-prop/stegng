@@ -141,8 +141,6 @@ void printChunk(chunk tchunk) {
 
 
 int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
-    size_t start = offset;
-
     uint32_t length;
     memcpy(&length, (uint8_t *)data + offset, sizeof(length));
     REVERSE(length);
@@ -174,7 +172,8 @@ int readChunk(void *data, size_t data_size, chunk *buff, size_t offset) {
     REVERSE(crc);
     buff->crc = crc;
 
-    uint32_t cyc = calcCRC((uint8_t *)data + start + sizeof(length), sizeof(type) + length);
+    uint32_t cyc = calcChunkCRC(*buff);
+
     buff->valid = cyc == crc;
     return 1;
 }
@@ -221,6 +220,22 @@ void *mapFile(int fd, size_t *map_size) {
     CRC algorithm, slightly modified
     Taken from http://www.libpng.org/pub/png/spec/1.2/PNG-CRCAppendix.html
 */
+
+uint32_t calcChunkCRC(chunk target) {
+    uint32_t crc = 0;
+
+    char *buff = malloc(target.length + sizeof(target.type));
+    uint32_t revtype = target.type;
+    REVERSE(revtype);
+
+    memcpy(buff, &revtype, sizeof(target.type));
+    memcpy(buff + sizeof(target.type), target.data, target.length);
+
+    uint32_t calculated_crc = calcCRC((uint8_t *)buff, target.length + sizeof(target.type));
+    crc = calculated_crc;
+    free(buff);
+    return crc;
+}
 
 /* Table of CRCs of all 8-bit messages. */
 unsigned long crc_table[256];
