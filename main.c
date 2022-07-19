@@ -16,12 +16,14 @@ int main(int argc, char **argv) {
     const char *out_path = NULL;
     bool strip_anci = false;
     bool print_chunks = false;
-    bool inject_chunks = false;
+    bool inject_chunks_data = false;
+    bool inject_chunks_file = false;
+    char *data_inj = NULL;
     char *file_inj = NULL;
     struct stat sbuff;
     long int position_def = -1;
     long int position = position_def;
-    size_t max_data_size_def = 128;
+    size_t max_data_size_def = 128000;
     size_t max_data_size = max_data_size_def;
 
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
@@ -30,7 +32,7 @@ int main(int argc, char **argv) {
     size_t chunks_size;
 
     int opt;
-    while((opt = getopt(argc, argv, "i:o:j:spx:d:")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:")) != -1) {
         switch(opt) {
             case 'i':
                 (void)0;
@@ -73,7 +75,12 @@ int main(int argc, char **argv) {
                 break;
 
             case 'j':
-                inject_chunks = true;
+                inject_chunks_data = true;
+                data_inj = optarg;
+                break;
+
+            case 'J':
+                inject_chunks_file = true;
                 file_inj = optarg;
                 break;
 
@@ -110,12 +117,46 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if(inject_chunks) {
-        int ret = inject(chunks, &chunks_size, position, file_inj, strlen(file_inj), max_data_size, tEXt);
+    if(inject_chunks_data) {
+        int ret = inject(chunks, &chunks_size, position, data_inj, strlen(data_inj), max_data_size, tEXt);
         if(ret == -1) {
             fprintf(stderr, "Failed to inject chunks\n");
             goto final;
         }
+    }
+
+    if(inject_chunks_file) {
+        int fd = open(file_inj, O_RDONLY);
+        if(fd == -1) {
+            fprintf(stderr, "Failed to open %s: %s\n", file_inj, strerror(errno));
+            goto final;
+        }
+
+        if(stat(file_inj, &sbuff) == -1) {
+            fprintf(stderr, "%s: %s\n", program_invocation_short_name, strerror(errno));
+            return 1;
+        }
+
+        if(!S_ISREG(sbuff.st_mode)) {
+            fprintf(stderr, "%s: %s is not a regular file\n", program_invocation_short_name, file_inj);
+            return 1;
+        }
+        size_t addr_size;
+        void *addr = mapFile(fd, &addr_size);
+        if(!addr) {
+            fprintf(stderr, "Failed to map %s\n", file_inj);
+            goto final;
+        }
+
+        close(fd);
+        int ret = inject(chunks, &chunks_size, position, addr, addr_size, max_data_size, tEXt);
+
+        if(ret == -1) {
+            fprintf(stderr, "Failed to inject chunks\n");
+            goto final;
+        }
+
+        unmapFile(addr, addr_size);
     }
 
     if(print_chunks) {
