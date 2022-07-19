@@ -46,10 +46,8 @@ int inject(chunk *chunks, size_t *chunks_size, int position, void *data, size_t 
         num_chunks = ceil(((float)data_size / max_data));
     }
 
-    /*printf("Number of chunks to inject: %zu\n", num_chunks);*/
-
     if(num_chunks + *chunks_size > MAX_CHUNK) {
-        fprintf(stderr, "Maxiumum number of chunks exceeded\n");
+        fprintf(stderr, "Maximum number of chunks exceeded\n");
         fprintf(stderr, "Current: %zu, limit %i\n", num_chunks + *chunks_size, MAX_CHUNK);
         return -1;
     }

@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
                 break;
 
             case 'x':
-                if(optarg[0] != '-' || !isdigit(optarg[0])) {
+                if(optarg[0] != '-' && !isdigit(optarg[0])) {
                     fprintf(stderr, "Invalid number format %s\n", optarg);
                 }
 
