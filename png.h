@@ -17,7 +17,7 @@ static const uint8_t validSigniture[] = {137, 80, 78, 71, 13, 10, 26, 10};
 #define IS_CRITICAL(A) !(A.type & (1 << 0x1D))
 
 #ifndef MAX_CHUNK
-#define MAX_CHUNK 1024
+#define MAX_CHUNK 8192
 #endif
 
 enum chunk_type {

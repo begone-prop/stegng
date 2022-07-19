@@ -97,7 +97,9 @@ int main(int argc, char **argv) {
                     fprintf(stderr, "Invalid number format %s\n", optarg);
                 }
 
-                max_data_size = strtol(optarg, NULL, 10);
+                int val = strtol(optarg, NULL, 10);
+                if(val == 0) val = UINT32_MAX;
+                max_data_size = val;
                 break;
 
             default:
