@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE 500
+#define _ISOC99_SOURCE
 
 #include "./png.h"
 #include <sys/stat.h>
@@ -6,9 +7,111 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
+static ssize_t parsePosition(size_t, int);
+
+static ssize_t parsePosition(size_t size, int position) {
+    ssize_t parsed = 0;
+
+    if(position >= 0) {
+        parsed = position + 1;
+        if((size_t) parsed >= size) parsed = size - 1;
+    }
+
+    else if(position < 0) {
+        if(abs(position) > size - 1) {
+            parsed = size - 1;
+        }
+        else parsed = size + position;
+    }
+
+    return parsed;
+}
+
+int inject(chunk *chunks, size_t *chunks_size, int position, void *data, size_t data_size, uint32_t type) {
+
+    if(!chunks || !chunks_size || !data) return -1;
+
+    ssize_t ret = parsePosition(*chunks_size, position);
+
+    if(ret == -1) return -1;
+    size_t index = (size_t)ret;
+
+    size_t num_chunks = 1;
+
+    if(data_size > MAX_DATA) {
+        num_chunks = ceil(((float)data_size / MAX_DATA));
+    }
+
+    /*printf("Number of chunks to inject: %zu\n", num_chunks);*/
+
+    if(num_chunks + *chunks_size > MAX_CHUNK) {
+        fprintf(stderr, "Maxiumum number of chunks exceeded\n");
+        fprintf(stderr, "Current: %zu, limit %i\n", num_chunks + *chunks_size, MAX_CHUNK);
+        return -1;
+    }
+
+    size_t data_offset = 0;
+    chunk *new_chunks = malloc(num_chunks * sizeof(chunk));
+    if(!new_chunks) {
+        fprintf(stderr, "malloc() fail\n");
+        return -1;
+    }
+
+    size_t chunk_idx = 0;
+    size_t copy_size = 0;
+    while(data_offset < data_size && chunk_idx < num_chunks) {
+        if(data_offset + MAX_DATA > data_size) {
+            copy_size = data_size - data_offset;
+        } else copy_size = MAX_DATA;
+
+        new_chunks[chunk_idx].type = type;
+        new_chunks[chunk_idx].data = malloc(copy_size);
+        memcpy(new_chunks[chunk_idx].data, (uint8_t *)data + data_offset, copy_size);
+        new_chunks[chunk_idx].length = copy_size;
+        uint32_t crc = calcChunkCRC(new_chunks[chunk_idx]);
+        new_chunks[chunk_idx].crc = crc;
+
+        new_chunks[chunk_idx].valid = true;
+
+        data_offset += copy_size;
+        chunk_idx++;
+    }
+
+    chunk *temp_chunks = malloc((num_chunks + *chunks_size) * sizeof(chunk));
+    if(!temp_chunks) {
+        fprintf(stderr, "malloc() fail\n");
+        for(size_t idx = 0; idx < num_chunks; idx++) {
+            free(new_chunks[idx].data);
+        }
+        free(new_chunks);
+        return -1;
+    }
+
+    size_t tidx = 0;
+    for(; tidx < index; tidx++) {
+        temp_chunks[tidx] = chunks[tidx];
+    }
+    size_t old = tidx;
+
+    for(size_t jdx = 0; jdx < num_chunks; jdx++, tidx++) {
+        temp_chunks[tidx] = new_chunks[jdx];
+    }
+
+    for(; old < *chunks_size; tidx++, old++) {
+        temp_chunks[tidx] = chunks[old];
+    }
+
+    memcpy(chunks, temp_chunks, (*chunks_size + num_chunks) * sizeof(chunk));
+    *chunks_size += num_chunks;
+
+    free(new_chunks);
+    free(temp_chunks);
+    return 1;
+}
 
 int writePNG(const char *path, chunk *chunks, size_t chunks_size, bool crit_only) {
     const mode_t perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;

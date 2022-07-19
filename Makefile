@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c99 -Wpedantic -ggdb
+CLIBS=-lm
 
 OBJDIR=lib
 CFILES=main.c png.c
