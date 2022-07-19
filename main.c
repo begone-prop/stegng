@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
+#define _ISOC99_SOURCE
 
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -17,7 +19,10 @@ int main(int argc, char **argv) {
     bool inject_chunks = false;
     char *file_inj = NULL;
     struct stat sbuff;
-    int position_def = -1;
+    long int position_def = -1;
+    long int position = position_def;
+    size_t max_data_size_def = 128;
+    size_t max_data_size = max_data_size_def;
 
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
@@ -25,7 +30,7 @@ int main(int argc, char **argv) {
     size_t chunks_size;
 
     int opt;
-    while((opt = getopt(argc, argv, "i:o:j:sp")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:j:spx:d:")) != -1) {
         switch(opt) {
             case 'i':
                 (void)0;
@@ -67,11 +72,26 @@ int main(int argc, char **argv) {
                 print_chunks = true;
                 break;
 
-            case 'j': {
+            case 'j':
                 inject_chunks = true;
                 file_inj = optarg;
                 break;
-            }
+
+            case 'x':
+                if(optarg[0] != '-' || !isdigit(optarg[0])) {
+                    fprintf(stderr, "Invalid number format %s\n", optarg);
+                }
+
+                position = strtol(optarg, NULL, 10);
+                break;
+
+            case 'd':
+                if(!isdigit(optarg[0])) {
+                    fprintf(stderr, "Invalid number format %s\n", optarg);
+                }
+
+                max_data_size = strtol(optarg, NULL, 10);
+                break;
 
             default:
                 fprintf(stderr, "%s: Unknown option %s", program_invocation_short_name, optarg);
@@ -91,7 +111,7 @@ int main(int argc, char **argv) {
     }
 
     if(inject_chunks) {
-        int ret = inject(chunks, &chunks_size, position_def, file_inj, strlen(file_inj), tEXt);
+        int ret = inject(chunks, &chunks_size, position, file_inj, strlen(file_inj), max_data_size, tEXt);
         if(ret == -1) {
             fprintf(stderr, "Failed to inject chunks\n");
             goto final;

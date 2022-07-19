@@ -31,7 +31,7 @@ static ssize_t parsePosition(size_t size, int position) {
     return parsed;
 }
 
-int inject(chunk *chunks, size_t *chunks_size, int position, void *data, size_t data_size, uint32_t type) {
+int inject(chunk *chunks, size_t *chunks_size, int position, void *data, size_t data_size, size_t max_data, uint32_t type) {
 
     if(!chunks || !chunks_size || !data) return -1;
 
@@ -42,8 +42,8 @@ int inject(chunk *chunks, size_t *chunks_size, int position, void *data, size_t 
 
     size_t num_chunks = 1;
 
-    if(data_size > MAX_DATA) {
-        num_chunks = ceil(((float)data_size / MAX_DATA));
+    if(data_size > max_data) {
+        num_chunks = ceil(((float)data_size / max_data));
     }
 
     /*printf("Number of chunks to inject: %zu\n", num_chunks);*/
@@ -64,9 +64,9 @@ int inject(chunk *chunks, size_t *chunks_size, int position, void *data, size_t 
     size_t chunk_idx = 0;
     size_t copy_size = 0;
     while(data_offset < data_size && chunk_idx < num_chunks) {
-        if(data_offset + MAX_DATA > data_size) {
+        if(data_offset + max_data > data_size) {
             copy_size = data_size - data_offset;
-        } else copy_size = MAX_DATA;
+        } else copy_size = max_data;
 
         new_chunks[chunk_idx].type = type;
         new_chunks[chunk_idx].data = malloc(copy_size);

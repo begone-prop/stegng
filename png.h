@@ -20,10 +20,6 @@ static const uint8_t validSigniture[] = {137, 80, 78, 71, 13, 10, 26, 10};
 #define MAX_CHUNK 1024
 #endif
 
-#ifndef MAX_DATA
-#define MAX_DATA 8
-#endif
-
 enum chunk_type {
     IHDR = 0x49484452,
     PLTE = 0x504c5445,
@@ -57,7 +53,7 @@ typedef struct chunk {
 
 int parsePNG(const char *, chunk *, size_t, size_t *);
 int writePNG(const char *, chunk *, size_t, bool);
-int inject(chunk *, size_t *, int, void *, size_t, uint32_t);
+int inject(chunk *, size_t *, int, void *, size_t, size_t, uint32_t);
 void printChunk(chunk);
 void reverse(void *, size_t);
 const char *getChunkName(uint32_t);
