@@ -13,11 +13,13 @@
 int main(int argc, char **argv) {
     char *path = NULL;
     char *temp_path = NULL;
-    const char *out_path = NULL;
+    char *out_path = NULL;
     bool strip_anci = false;
     bool print_chunks = false;
     bool inject_chunks_data = false;
     bool inject_chunks_file = false;
+    bool extract_chunks = false;
+    uint32_t ex_type;
     char *data_inj = NULL;
     char *file_inj = NULL;
     struct stat sbuff;
@@ -32,7 +34,7 @@ int main(int argc, char **argv) {
     size_t chunks_size;
 
     int opt;
-    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:e:")) != -1) {
         switch(opt) {
             case 'i':
                 (void)0;
@@ -102,6 +104,27 @@ int main(int argc, char **argv) {
                 max_data_size = val;
                 break;
 
+            case 'e':
+                extract_chunks = true;
+                /*ex_type =*/
+                size_t e_size = strlen(optarg);
+
+                if(e_size < 4) {
+                    fprintf(stderr, "Type to extract must be 4 bytes (ex. tEXt)\n");
+                    return 1;
+                }
+
+                for(size_t idx = 0; idx < 4; idx++) {
+                    if(!isascii(optarg[idx])) {
+                        fprintf(stderr, "Non ASCII character are not allowed\n");
+                        return 1;
+                    }
+                }
+
+                ex_type = *(uint32_t *)optarg;
+                REVERSE(ex_type);
+                break;
+
             default:
                 fprintf(stderr, "%s: Unknown option %s", program_invocation_short_name, optarg);
                 return 1;
@@ -159,6 +182,35 @@ int main(int argc, char **argv) {
         }
 
         unmapFile(addr, addr_size);
+    }
+
+    if(extract_chunks) {
+        int ofd;
+        if(!out_path) {
+            fprintf(stderr, "Writing binary data to stdout, this might confuse your terminal\n");
+            ofd = STDOUT_FILENO;
+        }
+
+        else {
+            const mode_t perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+            ofd = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, perm);
+            if(ofd == -1) {
+                fprintf(stderr, "Failed to open %s: %s\n", out_path, strerror(errno));
+                goto final;
+            }
+        }
+
+        for(size_t idx = 0; idx < chunks_size; idx++) {
+            if(chunks[idx].type == ex_type) {
+                if(chunks[idx].length == 0) continue;
+                if(write(ofd, chunks[idx].data, chunks[idx].length) == -1) {
+                    fprintf(stderr, "Failed to write chunk data\n");
+                    goto final;
+                }
+            }
+        }
+        close(ofd);
+        goto final;
     }
 
     if(print_chunks) {
