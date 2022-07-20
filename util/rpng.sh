@@ -10,6 +10,5 @@ chunk="${1:-tEXt}"
 
 echo "Searching for png with ${chunk} chunk"
 
-find "$IMGDIR" -name '*.png' -type f -print0 |
-    xargs -r0 grep -Zal "$chunk" | shuf -zn 1 |
-    xargs -r0I {} cp -v {} ./rand_"${chunk}".png
+grep -Zral --include='*.png' "$chunk" "$IMGDIR" |
+    shuf -zn 1 | xargs -r0I {} cp -v {} ./rand_"${chunk}".png
