@@ -11,6 +11,12 @@
 #include "./png.h"
 
 int main(int argc, char **argv) {
+
+    if(argc <= 1 || !strncmp(argv[1], "--help", 6)) {
+        usage();
+        return 0;
+    }
+
     char *path = NULL;
     char *temp_path = NULL;
     char *out_path = NULL;
@@ -20,6 +26,7 @@ int main(int argc, char **argv) {
     bool inject_chunks_file = false;
     bool extract_chunks = false;
     uint32_t ex_type;
+    uint32_t inj_type = tEXt;
     char *data_inj = NULL;
     char *file_inj = NULL;
     struct stat sbuff;
@@ -34,7 +41,7 @@ int main(int argc, char **argv) {
     size_t chunks_size;
 
     int opt;
-    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:e:")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:e:t:")) != -1) {
         switch(opt) {
             case 'i':
                 (void)0;
@@ -125,16 +132,45 @@ int main(int argc, char **argv) {
                 REVERSE(ex_type);
                 break;
 
+            case 't':
+                (void)0;
+                size_t t_size = strlen(optarg);
+
+                if(t_size < 4) {
+                    fprintf(stderr, "Type of custom chunk must be 4 bytes (ex. tEXt)\n");
+                    return 1;
+                }
+
+                for(size_t idx = 0; idx < 4; idx++) {
+                    if(!isascii(optarg[idx])) {
+                        fprintf(stderr, "Non ASCII character are not allowed\n");
+                        return 1;
+                    }
+                }
+
+                inj_type = *(uint32_t *)optarg;
+
+                if(IS_CRITICAL(inj_type)) fprintf(stderr, "Warning! Injecting data into chunk with critical bit turned on\n");
+
+
+                REVERSE(inj_type);
+                break;
+
             default:
-                fprintf(stderr, "%s: Unknown option %s", program_invocation_short_name, optarg);
+                fprintf(stderr, "%s: Unknown option %s\n", program_invocation_short_name, optarg);
+                usage();
                 return 1;
         }
     }
 
     if(!path) {
-        fprintf(stderr, "No input file...\n"
-            "Usage: %s -i <file> -o <file>\n", program_invocation_short_name);
+        usage();
         return 0;
+    }
+
+    if(extract_chunks && (inject_chunks_file || inject_chunks_data)) {
+        fprintf(stderr, "-e option if mutually exclusive with -J and -j option\n");
+        goto final;
     }
 
     if(parsePNG(path, chunks, MAX_CHUNK, &chunks_size) == -1) {
@@ -143,7 +179,7 @@ int main(int argc, char **argv) {
     }
 
     if(inject_chunks_data) {
-        int ret = inject(chunks, &chunks_size, position, data_inj, strlen(data_inj), max_data_size, tEXt);
+        int ret = inject(chunks, &chunks_size, position, data_inj, strlen(data_inj), max_data_size, inj_type);
         if(ret == -1) {
             fprintf(stderr, "Failed to inject chunks\n");
             goto final;
@@ -184,6 +220,7 @@ int main(int argc, char **argv) {
         unmapFile(addr, addr_size);
     }
 
+
     if(extract_chunks) {
         int ofd;
         if(!out_path) {
@@ -215,7 +252,7 @@ int main(int argc, char **argv) {
 
     if(print_chunks) {
         for(size_t idx = 0; idx < chunks_size; idx++) {
-            if(strip_anci && !IS_CRITICAL(chunks[idx])) continue;
+            if(strip_anci && !IS_CRITICAL(chunks[idx].type)) continue;
             printChunk(chunks[idx]);
         }
     }

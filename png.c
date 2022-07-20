@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #define _XOPEN_SOURCE 500
 #define _ISOC99_SOURCE
 
@@ -8,10 +9,29 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <errno.h>
 
 static unsigned long update_crc(unsigned long, unsigned char *, int);
 static void make_crc_table(void);
 static ssize_t parsePosition(size_t, int);
+
+void usage(void) {
+    fprintf(stderr,
+        "Usage: %s -i <file> OPTIONS\n"
+        "\t-i FILE\tinput filepath\n"
+        "\t-o FILE\toutput filepath\n"
+        "\t-p\tprint parsed and injected chunks\n"
+        "\t-s\tstrip non critical chunks\n"
+        "\t-j STR\tinject STR into png\n"
+        "\t-J FILE\tinject data from FILE into png\n"
+        "\t-x NUM\tinject chunks at POS position, negative values inject at end\n"
+        "\t-d NUM\tmaximum length of custom chunk data field,\n"
+            "\t\tdata that exceeds this number will be split into multiple chunks\n"
+        "\t-e STR\textract data fields from chunks with type STR\n"
+        "\t-t STR\tinject data into chunks with type STR\n",
+        program_invocation_short_name
+    );
+}
 
 static ssize_t parsePosition(size_t size, int position) {
     ssize_t parsed = 0;
@@ -123,7 +143,7 @@ int writePNG(const char *path, chunk *chunks, size_t chunks_size, bool crit_only
     out_offset += SIGNITURE_SIZE;
 
     for(size_t idx = 0; idx < chunks_size; idx++) {
-        if(crit_only && !IS_CRITICAL(chunks[idx])) continue;
+        if(crit_only && !IS_CRITICAL(chunks[idx].type)) continue;
 
         if(writeChunk(ofd, chunks[idx], out_offset) == -1) {
             close(ofd);

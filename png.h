@@ -14,7 +14,7 @@ static const uint8_t validSigniture[] = {137, 80, 78, 71, 13, 10, 26, 10};
 
 #define REVERSE(A) reverse(&(A), sizeof(A))
 #define CHUNK_SIZE(A) (A).length + 12
-#define IS_CRITICAL(A) !(A.type & (1 << 0x1D))
+#define IS_CRITICAL(A) !(A & (1 << 0x1D))
 
 #ifndef MAX_CHUNK
 #define MAX_CHUNK 65536
@@ -62,6 +62,7 @@ int writeChunk(int, chunk, size_t);
 void *mapFile(int, size_t *);
 int unmapFile(void *, size_t);
 int freeChunk(chunk *);
+void usage(void);
 unsigned long calcCRC(unsigned char *, int);
 uint32_t calcChunkCRC(chunk);
 #endif
