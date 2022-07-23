@@ -224,8 +224,8 @@ int main(int argc, char **argv) {
     if(extract_chunks) {
         int ofd;
         if(!out_path) {
-            fprintf(stderr, "Writing binary data to stdout, this might confuse your terminal\n");
             ofd = STDOUT_FILENO;
+            if(isatty(ofd)) fprintf(stderr, "Writing binary data to stdout, this might confuse your terminal\n");
         }
 
         else {
