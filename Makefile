@@ -1,13 +1,13 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c99 -Wpedantic -ggdb
+CFLAGS=-Wall -Wextra -std=c99 -Wpedantic -O2
 CLIBS=-lm
 
 OBJDIR=lib
-CFILES=main.c png.c
-OBJFILES=main.o png.o
+CFILES=cpng.c png.c
+OBJFILES=cpng.o png.o
 OBJ=$(addprefix $(OBJDIR)/, $(OBJFILES))
 
-BIN=main
+BIN=cpng
 
 all: $(BIN)
 
