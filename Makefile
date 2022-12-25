@@ -3,11 +3,11 @@ CFLAGS=-Wall -Wextra -std=c99 -Wpedantic -O2
 CLIBS=-lm
 
 OBJDIR=lib
-CFILES=cpng.c png.c
-OBJFILES=cpng.o png.o
+CFILES=stegng.c png.c
+OBJFILES=stegng.o png.o
 OBJ=$(addprefix $(OBJDIR)/, $(OBJFILES))
 
-BIN=cpng
+BIN=stegng
 
 all: $(BIN)
 
