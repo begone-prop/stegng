@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     size_t chunks_size;
 
     int opt;
-    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:e:t:")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:j:spx:d:J:e:t:h")) != -1) {
         switch(opt) {
             case 'i':
                 (void)0;
@@ -155,6 +155,10 @@ int main(int argc, char **argv) {
 
                 REVERSE(inj_type);
                 break;
+
+            case 'h':
+                usage();
+                return 0;
 
             default:
                 fprintf(stderr, "%s: Unknown option %s\n", program_invocation_short_name, optarg);
